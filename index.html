@@ -1,429 +1,1887 @@
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Werlyb - 10 Partidas OTP</title>
-    
-    <!-- Fuentes: Oswald (Títulos gamer) y Inter (Lectura) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome para Iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Werlyb · 10 Partidas OTP</title>
+<meta name="description" content="Seguimiento del reto de Werlyb: 10 partidas con cada campeón de League of Legends. Progreso, winrate y episodios.">
 
-    <!-- Tailwind CSS (CDN para prototipado rápido sin Node.js) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        hextech: {
-                            gold: '#C8AA6E',
-                            darkgold: '#A08453',
-                            blue: '#0AC8B9',
-                            darkblue: '#091428',
-                            bg: '#010A13',
-                            panel: '#0d1d36'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Oswald', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+<!-- Open Graph · sustituye la URL por una imagen 1200x630 real de tu repo -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Werlyb · 10 Partidas OTP">
+<meta property="og:description" content="Progreso, winrate y episodios del reto: 10 partidas con cada campeón.">
+<meta property="og:image" content="https://HMB0Wyvern.github.io/MastoWerlyb---OTP/og-image.png">
+<meta property="og:url" content="https://HMB0Wyvern.github.io/MastoWerlyb---OTP/">
+<meta name="twitter:card" content="summary_large_image">
 
-    <style>
-        /* Estilos personalizados League of Legends */
-        body {
-            background-color: #010A13;
-            background-image: radial-gradient(circle at top center, #091428 0%, #010A13 60%);
-            background-attachment: fixed;
-            color: #F0E6D2;
-        }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://ddragon.leagueoflegends.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-        /* Scrollbar estilo Hextech */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #010A13; }
-        ::-webkit-scrollbar-thumb { background: #C8AA6E; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #A08453; }
+<style>
+/* ==========================================================================
+   TOKENS
+   ========================================================================== */
+:root{
+  --bg:            #04070d;
+  --bg-deep:       #071122;
+  --panel:         #0b1626;
+  --panel-hi:      #122238;
+  --line:          #1e3350;
 
-        /* Efectos de las Tarjetas */
-        .champion-card {
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .champion-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(200,170,110,0.15) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg);
-            transition: all 0.5s;
-            z-index: 10;
-            pointer-events: none;
-        }
+  --gold:          #c8aa6e;
+  --gold-hi:       #f0e0b4;
+  --gold-dim:      #7a6540;
+  --teal:          #0ac8b9;
+  --teal-dim:      #0a6b66;
+  --text:          #f0e6d2;
+  --text-dim:      #9fb0c4;
+  --text-mute:     #6f8299;
+  --win:           #3ddc97;
+  --loss:          #e5484d;
 
-        .champion-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 10px 25px rgba(10, 200, 185, 0.2);
-        }
+  --r-sm: 2px;
+  --r-md: 4px;
+  --bevel: 10px;
 
-        .champion-card:hover::before {
-            left: 200%;
-        }
+  --ease: cubic-bezier(.16,1,.3,1);
+  --dur: 260ms;
 
-        /* Estados Visuales */
-        .estado-pendiente img { filter: grayscale(100%) brightness(0.6); }
-        .estado-pendiente:hover img { filter: grayscale(50%) brightness(0.9); }
-        
-        .estado-progreso img { filter: sepia(50%) hue-rotate(180deg) brightness(0.8); }
-        
-        .estado-completado { border: 2px solid #C8AA6E; }
-        .estado-completado img { filter: brightness(1.1); }
+  --shell: 1440px;
+}
 
-        /* Animación Modal */
-        dialog::backdrop {
-            background: rgba(1, 10, 19, 0.85);
-            backdrop-filter: blur(5px);
-        }
-        dialog[open] {
-            animation: modalFadeIn 0.3s ease-out forwards;
-        }
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: scale(0.95) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-    </style>
+*,*::before,*::after{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(10,200,185,.10), transparent 60%),
+    radial-gradient(900px 500px at 50% 0%, #0b1e33 0%, transparent 70%),
+    var(--bg);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+h1,h2,h3,.display{
+  font-family:'Barlow Condensed',Impact,sans-serif;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  margin:0;
+}
+.mono{ font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+
+::selection{ background:var(--gold); color:var(--bg); }
+
+/* Scrollbar */
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:var(--bg); }
+::-webkit-scrollbar-thumb{ background:var(--gold-dim); border:2px solid var(--bg); border-radius:6px; }
+::-webkit-scrollbar-thumb:hover{ background:var(--gold); }
+
+/* Focus visible en todo */
+:focus-visible{
+  outline:2px solid var(--teal);
+  outline-offset:2px;
+}
+
+.shell{ width:100%; max-width:var(--shell); margin-inline:auto; padding-inline:clamp(16px,3vw,32px); }
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+.hidden{ display:none !important; }
+
+/* Bisel hextech reutilizable */
+.bevel{
+  clip-path:polygon(
+    var(--bevel) 0, 100% 0, 100% calc(100% - var(--bevel)),
+    calc(100% - var(--bevel)) 100%, 0 100%, 0 var(--bevel)
+  );
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+.masthead{
+  position:sticky; top:0; z-index:40;
+  background:rgba(7,17,34,.86);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+  transition:padding var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.masthead::after{
+  content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:.6;
+}
+.masthead__inner{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:20px;
+  padding-block:clamp(14px,2.4vw,24px);
+  transition:padding var(--dur) var(--ease);
+}
+body.is-scrolled .masthead__inner{ padding-block:10px; }
+
+.brand{ display:flex; align-items:center; gap:14px; min-width:0; }
+.brand__mark{
+  width:44px; height:44px; flex:none;
+  display:grid; place-items:center;
+  border:1px solid var(--gold);
+  background:linear-gradient(160deg,var(--panel-hi),var(--panel));
+  transform:rotate(45deg);
+  transition:width var(--dur) var(--ease), height var(--dur) var(--ease);
+}
+.brand__mark span{
+  transform:rotate(-45deg);
+  font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:20px;
+  color:var(--gold); letter-spacing:.05em;
+}
+body.is-scrolled .brand__mark{ width:34px; height:34px; }
+
+.brand__title{
+  font-size:clamp(24px,3.4vw,38px); line-height:.95;
+  background:linear-gradient(90deg,#fff 20%,var(--gold));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  transition:font-size var(--dur) var(--ease);
+}
+body.is-scrolled .brand__title{ font-size:clamp(20px,2.4vw,26px); }
+.brand__sub{
+  margin:2px 0 0;
+  font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--teal); font-weight:600;
+  transition:opacity var(--dur) var(--ease), max-height var(--dur) var(--ease);
+}
+body.is-scrolled .brand__sub{ opacity:0; max-height:0; }
+
+/* Stats del header */
+.statbar{ display:flex; gap:10px; flex-wrap:wrap; }
+.stat{
+  --bevel:8px;
+  min-width:92px; padding:8px 14px;
+  background:linear-gradient(150deg,var(--panel-hi),var(--panel));
+  border:1px solid var(--line);
+  text-align:center;
+}
+.stat__value{ display:block; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:26px; line-height:1.1; }
+.stat__value--gold{ color:var(--gold); }
+.stat__value--teal{ color:var(--teal); }
+.stat__label{ font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-mute); }
+
+/* Barra de progreso global */
+.progress{ padding-bottom:14px; }
+.progress__track{
+  position:relative; height:6px; background:var(--bg-deep);
+  border:1px solid var(--line); overflow:hidden;
+}
+.progress__fill{
+  position:absolute; inset:0 auto 0 0; width:0;
+  background:linear-gradient(90deg,var(--gold-dim),var(--gold),var(--gold-hi));
+  transition:width 1.1s var(--ease);
+}
+.progress__fill::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:translateX(-100%);
+  animation:sheen 2.6s var(--ease) infinite;
+}
+@keyframes sheen{ to{ transform:translateX(100%); } }
+.progress__meta{
+  display:flex; justify-content:space-between;
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--text-mute); margin-top:6px;
+}
+
+/* ==========================================================================
+   HERO · siguiente episodio
+   ========================================================================== */
+.hero{ padding-block:clamp(20px,3vw,34px); }
+.hero__card{
+  --bevel:16px;
+  position:relative; overflow:hidden;
+  display:grid; grid-template-columns:auto 1fr auto; gap:clamp(16px,3vw,28px);
+  align-items:center;
+  padding:clamp(18px,3vw,26px);
+  background:linear-gradient(110deg,var(--panel-hi) 0%,var(--panel) 60%);
+  border:1px solid var(--line);
+}
+.hero__card::before{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(400px 200px at 12% 50%, rgba(10,200,185,.16), transparent 70%);
+  pointer-events:none;
+}
+.hero__portrait{
+  position:relative; z-index:1;
+  width:clamp(74px,11vw,110px); aspect-ratio:1;
+  border:1px solid var(--gold);
+  object-fit:cover;
+}
+.hero__body{ position:relative; z-index:1; min-width:0; }
+.hero__eyebrow{
+  font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+  color:var(--teal); font-weight:700;
+}
+.hero__name{ font-size:clamp(30px,5vw,52px); line-height:1; margin:4px 0 6px; }
+.hero__note{ color:var(--text-dim); font-size:14px; margin:0; }
+.hero__cta{ position:relative; z-index:1; }
+
+/* ==========================================================================
+   BOTONES
+   ========================================================================== */
+.btn{
+  --bevel:8px;
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 18px; border:1px solid var(--line);
+  background:var(--bg-deep); color:var(--text-dim);
+  font-family:'Barlow Condensed',sans-serif; font-weight:600;
+  font-size:14px; letter-spacing:.1em; text-transform:uppercase;
+  cursor:pointer; text-decoration:none;
+  transition:color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+             background var(--dur) var(--ease), transform 120ms var(--ease);
+}
+.btn:hover{ color:#fff; border-color:var(--gold); background:var(--panel-hi); }
+.btn:active{ transform:translateY(1px); }
+.btn[aria-pressed="true"], .btn.is-active{
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  color:#0b1626; border-color:var(--gold-hi);
+}
+.btn--primary{
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  color:#0b1626; border-color:var(--gold-hi);
+}
+.btn--primary:hover{ filter:brightness(1.08); color:#0b1626; }
+.btn--yt{
+  background:linear-gradient(180deg,#e5484d,#a01d21);
+  color:#fff; border-color:#e5484d; width:100%; justify-content:center;
+  padding-block:13px;
+}
+.btn--yt:hover{ filter:brightness(1.1); color:#fff; }
+
+/* ==========================================================================
+   CONTROLES
+   ========================================================================== */
+.controls{ padding-bottom:18px; }
+.controls__panel{
+  --bevel:12px;
+  padding:16px; background:rgba(11,22,38,.6);
+  border:1px solid var(--line);
+  display:flex; flex-direction:column; gap:14px;
+}
+.controls__row{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.controls__row--split{ justify-content:space-between; }
+
+.search{ position:relative; flex:1 1 260px; max-width:380px; }
+.search__input{
+  --bevel:8px;
+  width:100%; padding:11px 38px 11px 38px;
+  background:var(--bg-deep); border:1px solid var(--line);
+  color:var(--text); font-family:inherit; font-size:14px;
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.search__input::placeholder{ color:var(--text-mute); }
+.search__input:focus{
+  outline:none; border-color:var(--gold);
+  box-shadow:0 0 0 1px var(--gold), 0 0 18px rgba(200,170,110,.18);
+}
+.search__icon{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  color:var(--text-mute); pointer-events:none; font-size:14px;
+}
+.search__kbd{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:var(--text-mute); border:1px solid var(--line);
+  padding:1px 6px; pointer-events:none;
+}
+.search__clear{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  background:none; border:0; color:var(--text-mute); cursor:pointer;
+  font-size:16px; line-height:1; padding:4px;
+}
+.search__clear:hover{ color:var(--gold); }
+
+.group{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.group__label{
+  font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--text-mute); margin-right:2px;
+}
+.select{
+  --bevel:8px;
+  padding:9px 14px; background:var(--bg-deep); color:var(--text-dim);
+  border:1px solid var(--line); font-family:inherit; font-size:13px; cursor:pointer;
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+}
+.select:hover{ border-color:var(--gold); color:#fff; }
+
+.results-count{
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-mute);
+}
+.results-count b{ color:var(--gold); font-weight:700; }
+
+/* Tabs de vista */
+.tabs{ display:flex; gap:2px; border:1px solid var(--line); padding:2px; background:var(--bg-deep); }
+.tab{
+  padding:8px 16px; background:none; border:0; cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:14px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--text-mute);
+  transition:color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.tab:hover{ color:#fff; }
+.tab[aria-selected="true"]{ background:var(--gold); color:#0b1626; }
+
+/* ==========================================================================
+   GRID DE CAMPEONES
+   ========================================================================== */
+main{ flex:1 0 auto; padding-bottom:56px; }
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(118px,1fr));
+  gap:clamp(10px,1.4vw,16px);
+  content-visibility:auto;
+  contain-intrinsic-size:auto 900px;
+}
+
+.card{
+  --bevel:10px;
+  position:relative; display:block; width:100%; padding:0;
+  background:var(--panel); border:1px solid var(--line);
+  color:inherit; font:inherit; text-align:left; cursor:pointer;
+  overflow:hidden;
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+  transition:transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
+             box-shadow var(--dur) var(--ease);
+}
+.card.is-static{ cursor:default; }
+
+/* Entrada escalonada */
+.card{ opacity:0; transform:translateY(14px); }
+.card.is-in{
+  opacity:1; transform:none;
+  transition:opacity 420ms var(--ease) var(--d,0ms),
+             transform 420ms var(--ease) var(--d,0ms),
+             border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.card:hover{ transform:translateY(-6px); border-color:var(--gold); box-shadow:0 12px 28px rgba(0,0,0,.55); }
+.card:hover .card__img{ transform:scale(1.07); }
+
+.card__media{ position:relative; aspect-ratio:1; overflow:hidden; background:#000; }
+.card__img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform 600ms var(--ease), filter var(--dur) var(--ease);
+}
+.card__scrim{
+  position:absolute; inset:0;
+  background:linear-gradient(to top,rgba(4,7,13,.96) 0%,rgba(4,7,13,.35) 42%,transparent 68%);
+}
+.card__name{
+  position:absolute; left:8px; right:8px; bottom:20px;
+  font-family:'Barlow Condensed',sans-serif; font-weight:700;
+  font-size:15px; line-height:1.05; letter-spacing:.03em; text-transform:uppercase;
+  color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.9);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.card__role{
+  position:absolute; left:8px; bottom:8px;
+  font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--text-mute);
+}
+
+/* Barra V/D en la tarjeta */
+.card__wl{
+  position:absolute; left:0; right:0; bottom:0; height:3px;
+  display:flex; background:var(--bg-deep);
+}
+.card__wl i{ display:block; height:100%; }
+.card__wl .w{ background:var(--win); }
+.card__wl .l{ background:var(--loss); }
+
+/* Badges de esquina */
+.card__flag{
+  position:absolute; top:6px; left:6px;
+  width:22px; height:22px; display:grid; place-items:center;
+  background:var(--teal); color:#04070d; font-size:11px;
+  clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);
+}
+.card__wr{
+  position:absolute; top:6px; right:6px;
+  padding:2px 6px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  background:rgba(4,7,13,.85); border:1px solid var(--gold); color:var(--gold);
+}
+
+/* Estados */
+.card--pendiente .card__img{ filter:grayscale(1) brightness(.42); }
+.card--pendiente:hover .card__img{ filter:grayscale(.55) brightness(.72); }
+.card--pendiente .card__name{ color:var(--text-mute); }
+
+.card--completado{ border-color:var(--gold); }
+.card--completado .card__img{ filter:saturate(1.05) brightness(1.04); }
+
+.card--progreso{ border-color:var(--teal); }
+.card--progreso::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  box-shadow:inset 0 0 0 1px var(--teal);
+  animation:pulse 2.2s var(--ease) infinite;
+}
+@keyframes pulse{ 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+
+/* Skeletons */
+.skeleton{
+  --bevel:10px;
+  aspect-ratio:1/1.18; background:var(--panel);
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+  position:relative; overflow:hidden;
+}
+.skeleton::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+  transform:translateX(-100%);
+  animation:sheen 1.4s linear infinite;
+}
+
+/* Estado vacío */
+.empty{ display:none; padding:80px 20px; text-align:center; }
+.empty.is-shown{ display:block; }
+.empty__icon{ font-size:44px; color:var(--line); }
+.empty__title{ font-size:26px; margin:12px 0 6px; color:var(--text-dim); }
+.empty__hint{ color:var(--text-mute); font-size:14px; margin:0 0 18px; }
+
+/* ==========================================================================
+   VISTAS: TIMELINE / COACHES / EVOLUCIÓN
+   ========================================================================== */
+.view{ display:none; }
+.view.is-active{ display:block; }
+
+.section-title{
+  font-size:20px; color:var(--gold); margin:28px 0 14px;
+  display:flex; align-items:center; gap:12px;
+}
+.section-title::after{
+  content:''; flex:1; height:1px;
+  background:linear-gradient(90deg,var(--line),transparent);
+}
+
+/* Timeline */
+.timeline{ list-style:none; margin:0; padding:0 0 0 26px; position:relative; }
+.timeline::before{
+  content:''; position:absolute; left:7px; top:6px; bottom:6px; width:1px;
+  background:linear-gradient(180deg,var(--gold),var(--teal-dim),transparent);
+}
+.tl-item{ position:relative; padding:0 0 22px 0; }
+.tl-item::before{
+  content:''; position:absolute; left:-23px; top:14px;
+  width:9px; height:9px; background:var(--gold); transform:rotate(45deg);
+  box-shadow:0 0 0 3px var(--bg);
+}
+.tl-card{
+  --bevel:10px;
+  display:flex; align-items:center; gap:14px; width:100%;
+  padding:12px 14px; text-align:left;
+  background:var(--panel); border:1px solid var(--line); color:inherit;
+  font:inherit; cursor:pointer;
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+  transition:border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.tl-card:hover{ border-color:var(--gold); transform:translateX(4px); }
+.tl-card img{ width:48px; height:48px; object-fit:cover; border:1px solid var(--gold); flex:none; }
+.tl-card__name{ font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:19px; text-transform:uppercase; }
+.tl-card__meta{ font-size:12px; color:var(--text-mute); }
+.tl-card__wr{ margin-left:auto; text-align:right; }
+.tl-card__wr b{ font-family:'JetBrains Mono',monospace; font-size:18px; color:var(--gold); }
+
+/* Coaches */
+.coach-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+.coach{
+  --bevel:12px;
+  padding:16px; background:var(--panel); border:1px solid var(--line);
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+}
+.coach__name{ font-size:19px; color:var(--gold); }
+.coach__meta{ font-size:12px; color:var(--text-mute); margin:2px 0 12px; }
+.coach__champs{ display:flex; flex-wrap:wrap; gap:6px; }
+.coach__champs img{ width:34px; height:34px; object-fit:cover; border:1px solid var(--line); }
+.coach__wr{ font-family:'JetBrains Mono',monospace; font-size:22px; color:var(--gold); }
+
+/* Gráfico */
+.chart-wrap{
+  --bevel:12px;
+  padding:20px; background:var(--panel); border:1px solid var(--line);
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+}
+.chart-wrap svg{ width:100%; height:auto; display:block; }
+.chart-line{
+  stroke:var(--gold); stroke-width:2; fill:none;
+  stroke-dasharray:var(--len); stroke-dashoffset:var(--len);
+  animation:draw 1.6s var(--ease) forwards;
+}
+@keyframes draw{ to{ stroke-dashoffset:0; } }
+.chart-dot{ fill:var(--bg); stroke:var(--gold); stroke-width:2; }
+.chart-grid{ stroke:var(--line); stroke-width:1; }
+.chart-label{ fill:var(--text-mute); font-size:10px; font-family:'JetBrains Mono',monospace; }
+
+/* Tarjetas de récord */
+.records{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+.record{
+  --bevel:10px;
+  padding:14px 16px; background:var(--panel); border:1px solid var(--line);
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+}
+.record__label{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-mute); }
+.record__value{ font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:26px; margin-top:4px; }
+
+/* ==========================================================================
+   MODAL
+   ========================================================================== */
+dialog{
+  padding:0; border:0; background:transparent; max-width:560px; width:calc(100% - 32px);
+  color:var(--text);
+}
+dialog::backdrop{ background:rgba(2,5,10,.86); backdrop-filter:blur(6px); }
+dialog[open]{ animation:modalIn 280ms var(--ease); }
+dialog[open]::backdrop{ animation:fadeIn 280ms var(--ease); }
+dialog.is-closing{ animation:modalOut 200ms var(--ease) forwards; }
+dialog.is-closing::backdrop{ animation:fadeOut 200ms var(--ease) forwards; }
+@keyframes modalIn{ from{ opacity:0; transform:scale(.96) translateY(18px); } }
+@keyframes modalOut{ to{ opacity:0; transform:scale(.97) translateY(10px); } }
+@keyframes fadeIn{ from{ opacity:0; } }
+@keyframes fadeOut{ to{ opacity:0; } }
+
+.modal{
+  --bevel:18px;
+  position:relative; background:var(--panel); border:1px solid var(--gold);
+  clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel));
+}
+.modal__close{
+  position:absolute; top:10px; right:10px; z-index:5;
+  width:34px; height:34px; display:grid; place-items:center;
+  background:rgba(4,7,13,.7); border:1px solid var(--line); color:var(--text-dim);
+  cursor:pointer; font-size:18px; line-height:1;
+}
+.modal__close:hover{ color:#fff; border-color:var(--gold); }
+
+.modal__nav{
+  position:absolute; top:10px; left:10px; z-index:5; display:flex; gap:4px;
+}
+.modal__nav button{
+  width:30px; height:34px; display:grid; place-items:center;
+  background:rgba(4,7,13,.7); border:1px solid var(--line); color:var(--text-dim);
+  cursor:pointer; font-size:14px;
+}
+.modal__nav button:hover{ color:var(--gold); border-color:var(--gold); }
+
+.modal__hero{ position:relative; height:170px; overflow:hidden; display:flex; align-items:flex-end; }
+.modal__bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.35; filter:blur(6px); transform:scale(1.15); }
+.modal__bg--yt{ opacity:.5; filter:blur(2px); }
+.modal__scrim{ position:absolute; inset:0; background:linear-gradient(to top,var(--panel),transparent 85%); }
+.modal__heading{ position:relative; z-index:2; display:flex; align-items:flex-end; gap:14px; padding:18px; width:100%; }
+.modal__avatar{ width:82px; height:82px; object-fit:cover; border:1px solid var(--gold); flex:none; }
+.modal__name{ font-size:34px; line-height:1; }
+.modal__tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.chip{
+  font-size:10px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
+  padding:3px 8px; border:1px solid var(--line); color:var(--text-dim);
+}
+.chip--gold{ background:var(--gold); color:#0b1626; border-color:var(--gold); }
+.chip--teal{ background:var(--teal); color:#04070d; border-color:var(--teal); }
+
+.modal__body{ padding:18px; }
+.modal__stats{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.mstat{ padding:14px; background:var(--bg-deep); border:1px solid var(--line); text-align:center; }
+.mstat__label{ font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-mute); }
+.mstat__value{ font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:30px; color:var(--gold); line-height:1.1; }
+.mstat__split{ display:flex; justify-content:center; align-items:center; gap:16px; height:100%; }
+.mstat__split b{ font-family:'Barlow Condensed',sans-serif; font-size:24px; display:block; }
+.mstat__split .w{ color:var(--win); }
+.mstat__split .l{ color:var(--loss); }
+
+.modal__bar{ height:6px; display:flex; background:var(--bg-deep); border:1px solid var(--line); margin-bottom:16px; }
+.modal__bar i{ display:block; height:100%; transition:width 600ms var(--ease); }
+.modal__bar .w{ background:var(--win); }
+.modal__bar .l{ background:var(--loss); }
+
+.modal__list{ list-style:none; margin:0 0 16px; padding:0; display:grid; gap:9px; }
+.modal__list li{ display:flex; align-items:center; gap:10px; font-size:14px; }
+.modal__list .k{ color:var(--text-mute); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+.modal__list .v{ color:#fff; margin-left:auto; text-align:right; }
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+footer{
+  border-top:1px solid var(--line); background:var(--bg-deep);
+  padding:26px 0; text-align:center; font-size:13px; color:var(--text-dim);
+}
+footer p{ margin:4px 0; }
+footer a{ color:var(--gold); }
+
+/* ==========================================================================
+   VIEW TRANSITIONS
+   ========================================================================== */
+::view-transition-old(root),
+::view-transition-new(root){ animation-duration:220ms; }
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+  .card{ opacity:1; transform:none; }
+}
+
+@media (max-width:640px){
+  .hero__card{ grid-template-columns:auto 1fr; }
+  .hero__cta{ grid-column:1 / -1; }
+  .btn--wide-mobile{ width:100%; justify-content:center; }
+  .controls__row--split{ flex-direction:column; align-items:stretch; }
+  .search{ max-width:none; }
+  .search__kbd{ display:none; }
+}
+</style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
+<body>
 
-    <!-- Encabezado / Header -->
-    <header class="border-b border-hextech-gold/30 bg-hextech-darkblue/80 backdrop-blur-md sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <!-- Logo o Avatar (Opcional) -->
-                    <div class="w-14 h-14 rounded-full border-2 border-hextech-gold overflow-hidden bg-hextech-panel flex items-center justify-center">
-                        <i class="fa-solid fa-gamepad text-hextech-gold text-2xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-display text-3xl md:text-4xl text-white tracking-wider uppercase font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-hextech-gold">
-                            Werlyb
-                        </h1>
-                        <p class="text-hextech-blue font-medium uppercase tracking-widest text-sm">El Reto: 10 Partidas OTP</p>
-                    </div>
-                </div>
-
-                <!-- Estadísticas Globales rápidas -->
-                <div class="flex gap-6 text-center">
-                    <div class="bg-hextech-panel px-4 py-2 rounded border border-hextech-gold/20">
-                        <span class="block text-2xl font-display font-bold text-white" id="stat-completados">0</span>
-                        <span class="text-xs uppercase text-gray-400">Completados</span>
-                    </div>
-                    <div class="bg-hextech-panel px-4 py-2 rounded border border-hextech-gold/20">
-                        <span class="block text-2xl font-display font-bold text-hextech-gold" id="stat-winrate">0%</span>
-                        <span class="text-xs uppercase text-gray-400">Winrate Global</span>
-                    </div>
-                </div>
-            </div>
+<!-- ===== HEADER ===== -->
+<header class="masthead">
+  <div class="shell">
+    <div class="masthead__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true"><span>W</span></div>
+        <div>
+          <h1 class="brand__title">Werlyb</h1>
+          <p class="brand__sub">10 partidas con cada campeón</p>
         </div>
-    </header>
+      </div>
 
-    <!-- Controles (Buscador y Filtros) -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <div class="flex flex-col md:flex-row gap-4 justify-between items-center bg-hextech-panel/50 p-4 rounded-lg border border-hextech-gold/10">
-            
-            <!-- Buscador -->
-            <div class="relative w-full md:w-1/3">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i class="fa-solid fa-search text-gray-400"></i>
-                </div>
-                <input type="text" id="searchInput" placeholder="Buscar campeón..." class="w-full bg-hextech-darkblue border border-gray-700 text-white rounded-md pl-10 pr-4 py-2 focus:outline-none focus:border-hextech-gold focus:ring-1 focus:ring-hextech-gold transition">
-            </div>
-
-            <!-- Filtros -->
-            <div class="flex flex-wrap gap-2 w-full md:w-auto" id="filterButtons">
-                <button data-filter="Todos" class="filter-btn active px-4 py-2 rounded bg-hextech-gold text-hextech-darkblue font-semibold text-sm uppercase transition hover:brightness-110">Todos</button>
-                <button data-filter="Completado" class="filter-btn px-4 py-2 rounded bg-hextech-darkblue border border-gray-600 text-gray-300 font-semibold text-sm uppercase transition hover:border-hextech-gold hover:text-white">Completados</button>
-                <button data-filter="En progreso" class="filter-btn px-4 py-2 rounded bg-hextech-darkblue border border-gray-600 text-gray-300 font-semibold text-sm uppercase transition hover:border-hextech-blue hover:text-white">En Progreso</button>
-                <button data-filter="Pendiente" class="filter-btn px-4 py-2 rounded bg-hextech-darkblue border border-gray-600 text-gray-300 font-semibold text-sm uppercase transition hover:border-gray-400 hover:text-white">Pendientes</button>
-            </div>
+      <div class="statbar">
+        <div class="stat bevel">
+          <span class="stat__value stat__value--gold" id="statDone" data-count="0">0</span>
+          <span class="stat__label">Completados</span>
         </div>
-    </section>
-
-    <!-- Grid de Campeones -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 w-full">
-        <div id="championsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            <!-- Las tarjetas se generan aquí vía JS -->
+        <div class="stat bevel">
+          <span class="stat__value" id="statWinrate" data-count="0" data-suffix="%">0%</span>
+          <span class="stat__label">Winrate</span>
         </div>
-        
-        <!-- Estado vacío (Si no hay resultados en la búsqueda) -->
-        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
-            <i class="fa-solid fa-ghost text-6xl text-gray-600 mb-4"></i>
-            <h2 class="text-2xl font-display text-gray-400">No se encontraron campeones</h2>
+        <div class="stat bevel">
+          <span class="stat__value stat__value--teal" id="statGames" data-count="0">0</span>
+          <span class="stat__label">Partidas</span>
         </div>
-    </main>
+      </div>
+    </div>
 
-    <!-- Footer -->
-    <footer class="border-t border-hextech-gold/20 bg-hextech-panel py-6 text-center text-sm text-gray-500 mt-auto">
-        <p>Proyecto creado para la serie "10 Partidas OTP" de Werlyb.</p>
-        <p class="mt-1">Datos obtenidos de Riot Games API. No afiliado oficialmente con Riot Games.</p>
-    </footer>
+    <div class="progress">
+      <div class="progress__track" role="progressbar" aria-labelledby="progressLabel"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+        <div class="progress__fill" id="progressFill"></div>
+      </div>
+      <div class="progress__meta">
+        <span id="progressLabel">Progreso del reto</span>
+        <span id="progressText" class="mono">0 / 0</span>
+      </div>
+    </div>
+  </div>
+</header>
 
-    <!-- Modal de Detalles del Campeón -->
-    <dialog id="championModal" class="bg-transparent m-auto p-4 w-full max-w-lg rounded-xl">
-        <div class="bg-hextech-panel border border-hextech-gold shadow-2xl shadow-hextech-gold/20 rounded-xl overflow-hidden relative">
-            
-            <!-- Botón Cerrar -->
-            <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white z-20 transition">
-                <i class="fa-solid fa-xmark text-2xl"></i>
-            </button>
+<!-- ===== HERO ===== -->
+<section class="hero shell" id="heroSection" hidden>
+  <div class="hero__card">
+    <img class="hero__portrait" id="heroImg" src="" alt="" width="110" height="110" decoding="async">
+    <div class="hero__body">
+      <p class="hero__eyebrow" id="heroEyebrow">En curso</p>
+      <h2 class="hero__name" id="heroName">—</h2>
+      <p class="hero__note" id="heroNote"></p>
+    </div>
+    <div class="hero__cta">
+      <button class="btn btn--primary btn--wide-mobile" id="heroBtn" type="button">Ver detalles</button>
+    </div>
+  </div>
+</section>
 
-            <!-- Cabecera Modal (Imagen de fondo blur) -->
-            <div class="relative h-48 overflow-hidden flex items-end">
-                <img id="modalBg" src="" alt="Fondo" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm scale-110">
-                <div class="absolute inset-0 bg-gradient-to-t from-hextech-panel to-transparent"></div>
-                
-                <div class="relative z-10 p-6 flex items-end gap-4 w-full">
-                    <img id="modalAvatar" src="" alt="Avatar" class="w-24 h-24 rounded-lg border-2 border-hextech-gold shadow-lg object-cover">
-                    <div class="mb-1">
-                        <h2 id="modalName" class="text-4xl font-display font-bold text-white tracking-wide">Campeón</h2>
-                        <span id="modalStatus" class="inline-block px-2 py-1 rounded text-xs font-bold uppercase mt-1">Estado</span>
-                    </div>
-                </div>
-            </div>
+<!-- ===== CONTROLES ===== -->
+<section class="controls shell">
+  <div class="controls__panel">
 
-            <!-- Contenido Modal -->
-            <div class="p-6">
-                <!-- Estadísticas Grid -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-hextech-darkblue p-4 rounded border border-gray-700 text-center">
-                        <div class="text-gray-400 text-xs uppercase mb-1">Winrate</div>
-                        <div id="modalWinrate" class="text-3xl font-display font-bold text-hextech-gold">0%</div>
-                    </div>
-                    <div class="bg-hextech-darkblue p-4 rounded border border-gray-700 flex justify-center items-center gap-4">
-                        <div class="text-center">
-                            <div class="text-green-400 text-xl font-bold" id="modalWins">0</div>
-                            <div class="text-gray-500 text-[10px] uppercase">Victorias</div>
-                        </div>
-                        <div class="text-gray-600 text-xl">-</div>
-                        <div class="text-center">
-                            <div class="text-red-400 text-xl font-bold" id="modalLosses">0</div>
-                            <div class="text-gray-500 text-[10px] uppercase">Derrotas</div>
-                        </div>
-                    </div>
-                </div>
+    <div class="controls__row">
+      <div class="tabs" role="tablist" aria-label="Vistas">
+        <button class="tab" role="tab" data-view="grid" aria-selected="true">Campeones</button>
+        <button class="tab" role="tab" data-view="timeline" aria-selected="false">Cronología</button>
+        <button class="tab" role="tab" data-view="coaches" aria-selected="false">Coaches</button>
+        <button class="tab" role="tab" data-view="stats" aria-selected="false">Evolución</button>
+      </div>
+    </div>
 
-                <!-- Detalles adicionales -->
-                <ul class="space-y-3 mb-6">
-                    <li class="flex items-center gap-3 text-gray-300">
-                        <i class="fa-solid fa-user-tie text-hextech-blue w-5 text-center"></i>
-                        <span class="text-sm font-semibold text-gray-400">Coach Invitado:</span>
-                        <span id="modalCoach" class="text-white">Ninguno</span>
-                    </li>
-                    <li class="flex items-center gap-3 text-gray-300">
-                        <i class="fa-solid fa-calendar-alt text-hextech-blue w-5 text-center"></i>
-                        <span class="text-sm font-semibold text-gray-400">Fecha de grabación:</span>
-                        <span id="modalDate" class="text-white">---</span>
-                    </li>
-                </ul>
+    <div class="controls__row controls__row--split" id="gridControls">
+      <div class="search">
+        <span class="search__icon" aria-hidden="true">⌕</span>
+        <label class="sr-only" for="searchInput">Buscar campeón</label>
+        <input class="search__input" id="searchInput" type="search" autocomplete="off"
+               placeholder="Buscar campeón…" aria-describedby="resultsCount">
+        <kbd class="search__kbd" id="searchKbd">/</kbd>
+        <button class="search__clear hidden" id="searchClear" type="button" aria-label="Limpiar búsqueda">✕</button>
+      </div>
 
-                <!-- Botón Video -->
-                <a id="modalVideoBtn" href="#" target="_blank" class="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white text-center font-display font-bold uppercase rounded shadow-lg transition transform hover:-translate-y-1">
-                    <i class="fa-brands fa-youtube mr-2"></i> Ver Episodio en YouTube
-                </a>
-            </div>
+      <div class="group" id="stateFilters" role="group" aria-label="Filtrar por estado">
+        <span class="group__label">Estado</span>
+        <button class="btn is-active" data-filter="Todos" aria-pressed="true">Todos</button>
+        <button class="btn" data-filter="Completado" aria-pressed="false">Completados</button>
+        <button class="btn" data-filter="En progreso" aria-pressed="false">En curso</button>
+        <button class="btn" data-filter="Pendiente" aria-pressed="false">Pendientes</button>
+      </div>
+    </div>
+
+    <div class="controls__row controls__row--split" id="gridControls2">
+      <div class="group">
+        <span class="group__label">Clase</span>
+        <label class="sr-only" for="roleSelect">Filtrar por clase</label>
+        <select class="select" id="roleSelect">
+          <option value="Todos">Todas las clases</option>
+        </select>
+
+        <span class="group__label">Línea</span>
+        <label class="sr-only" for="laneSelect">Filtrar por línea jugada</label>
+        <select class="select" id="laneSelect">
+          <option value="Todos">Todas las líneas</option>
+        </select>
+
+        <span class="group__label">Orden</span>
+        <label class="sr-only" for="sortSelect">Ordenar</label>
+        <select class="select" id="sortSelect">
+          <option value="alfabetico">A · Z</option>
+          <option value="estado">Completados primero</option>
+          <option value="winrate">Mejor winrate</option>
+          <option value="fecha">Más recientes</option>
+          <option value="partidas">Más partidas</option>
+        </select>
+      </div>
+
+      <p class="results-count" id="resultsCount" aria-live="polite">
+        Mostrando <b>0</b> de <b>0</b>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== VISTAS ===== -->
+<main class="shell">
+
+  <!-- Vista: grid -->
+  <section class="view is-active" id="view-grid">
+    <div class="grid" id="championsGrid"></div>
+    <div class="empty" id="emptyState">
+      <div class="empty__icon" aria-hidden="true">◇</div>
+      <h2 class="empty__title">Ningún campeón coincide</h2>
+      <p class="empty__hint">Prueba con otro nombre o quita los filtros activos.</p>
+      <button class="btn" id="resetFilters" type="button">Quitar filtros</button>
+    </div>
+  </section>
+
+  <!-- Vista: cronología -->
+  <section class="view" id="view-timeline">
+    <h2 class="section-title">Episodios por fecha</h2>
+    <ol class="timeline" id="timelineList"></ol>
+    <div class="empty" id="timelineEmpty">
+      <div class="empty__icon" aria-hidden="true">◇</div>
+      <h2 class="empty__title">Todavía no hay episodios con fecha</h2>
+      <p class="empty__hint">Añade el campo <code>fecha</code> en data.json para verlos aquí.</p>
+    </div>
+  </section>
+
+  <!-- Vista: coaches -->
+  <section class="view" id="view-coaches">
+    <h2 class="section-title">Coaches invitados</h2>
+    <div class="coach-grid" id="coachGrid"></div>
+    <div class="empty" id="coachEmpty">
+      <div class="empty__icon" aria-hidden="true">◇</div>
+      <h2 class="empty__title">Sin coaches registrados</h2>
+      <p class="empty__hint">Rellena el campo <code>coach</code> en data.json.</p>
+    </div>
+  </section>
+
+  <!-- Vista: evolución -->
+  <section class="view" id="view-stats">
+    <h2 class="section-title">Récords</h2>
+    <div class="records" id="recordsGrid"></div>
+
+    <h2 class="section-title">Winrate episodio a episodio</h2>
+    <div class="chart-wrap" id="chartWrap"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="shell">
+    <p>Seguimiento no oficial del reto <strong>10 Partidas OTP</strong> de Werlyb.</p>
+    <p>Retratos e datos de campeón vía <a href="https://developer.riotgames.com/docs/lol#data-dragon" target="_blank" rel="noopener">Data Dragon</a>. Sin afiliación con Riot Games.</p>
+  </div>
+</footer>
+
+<!-- ===== MODAL ===== -->
+<dialog id="championModal" aria-labelledby="modalName">
+  <div class="modal">
+    <div class="modal__nav">
+      <button id="modalPrev" type="button" aria-label="Campeón anterior">‹</button>
+      <button id="modalNext" type="button" aria-label="Campeón siguiente">›</button>
+    </div>
+    <button class="modal__close" id="modalClose" type="button" aria-label="Cerrar">✕</button>
+
+    <div class="modal__hero">
+      <img class="modal__bg" id="modalBg" src="" alt="" aria-hidden="true">
+      <div class="modal__scrim"></div>
+      <div class="modal__heading">
+        <img class="modal__avatar" id="modalAvatar" src="" alt="" width="82" height="82">
+        <div>
+          <h2 class="modal__name" id="modalName">Campeón</h2>
+          <div class="modal__tags" id="modalTags"></div>
         </div>
-    </dialog>
+      </div>
+    </div>
 
-    <script>
-        // === DATOS DE PRUEBA (FALLBACK) ===
-        // Si no existe data.json localmente, cargaremos esto por defecto.
-        const fallbackData = [
-            { id: "Jax", nombre: "Jax", imagen_url: "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Jax.png", estado: "Completado", victorias: 7, derrotas: 3, coach: "ElOjoNinja", fecha: "15 Oct 2023", video_url: "https://youtube.com" },
-            { id: "Irelia", nombre: "Irelia", imagen_url: "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Irelia.png", estado: "Completado", victorias: 4, derrotas: 6, coach: "IreliaCarriesU", fecha: "22 Oct 2023", video_url: "https://youtube.com" },
-            { id: "Gwen", nombre: "Gwen", imagen_url: "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Gwen.png", estado: "En progreso", victorias: 2, derrotas: 1, coach: "Ninguno", fecha: "", video_url: "" },
-            { id: "Kante", nombre: "K'Sante", imagen_url: "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/KSante.png", estado: "Pendiente", victorias: 0, derrotas: 0, coach: "Ninguno", fecha: "", video_url: "" },
-            { id: "Sett", nombre: "Sett", imagen_url: "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Sett.png", estado: "Pendiente", victorias: 0, derrotas: 0, coach: "Ninguno", fecha: "", video_url: "" }
-        ];
+    <div class="modal__body">
+      <div class="modal__stats">
+        <div class="mstat">
+          <div class="mstat__label">Winrate</div>
+          <div class="mstat__value" id="modalWinrate">0%</div>
+        </div>
+        <div class="mstat">
+          <div class="mstat__split">
+            <div><b class="w" id="modalWins">0</b><span class="mstat__label">Victorias</span></div>
+            <div><b class="l" id="modalLosses">0</b><span class="mstat__label">Derrotas</span></div>
+          </div>
+        </div>
+      </div>
 
-        let championsData = [];
-        let currentFilter = 'Todos';
-        let currentSearch = '';
+      <div class="modal__bar" aria-hidden="true">
+        <i class="w" id="modalBarW" style="width:0%"></i>
+        <i class="l" id="modalBarL" style="width:0%"></i>
+      </div>
 
-        // === INICIALIZACIÓN ===
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchData();
-            setupEventListeners();
-        });
+      <ul class="modal__list">
+        <li><span class="k">Coach</span><span class="v" id="modalCoach">—</span></li>
+        <li><span class="k">Línea jugada</span><span class="v" id="modalLane">—</span></li>
+        <li><span class="k">Clase</span><span class="v" id="modalClass">—</span></li>
+        <li><span class="k">Fecha</span><span class="v" id="modalDate">—</span></li>
+      </ul>
 
-        // 1. Obtener Datos
-        async function fetchData() {
-            try {
-                // Intenta cargar el archivo data.json (Útil para producción)
-                const response = await fetch('data.json');
-                if (!response.ok) throw new Error('data.json no encontrado');
-                championsData = await response.json();
-            } catch (error) {
-                console.log('No se pudo cargar data.json, usando datos de prueba.');
-                championsData = fallbackData;
-            }
-            updateGlobalStats();
-            renderGrid();
-        }
+      <a class="btn btn--yt" id="modalVideo" href="#" target="_blank" rel="noopener">
+        ▶ Ver episodio
+      </a>
+    </div>
+  </div>
+</dialog>
 
-        // 2. Renderizar Cuadrícula
-        function renderGrid() {
-            const grid = document.getElementById('championsGrid');
-            const emptyState = document.getElementById('emptyState');
-            grid.innerHTML = '';
+<script>
+'use strict';
 
-            // Filtrar datos
-            const filteredData = championsData.filter(champ => {
-                const matchesFilter = currentFilter === 'Todos' || champ.estado === currentFilter;
-                const matchesSearch = champ.nombre.toLowerCase().includes(currentSearch.toLowerCase());
-                return matchesFilter && matchesSearch;
-            });
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+const DDRAGON_VERSION = '14.14.1';
+const DDRAGON_CHAMPS  = `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/data/es_ES/champion.json`;
 
-            if (filteredData.length === 0) {
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                
-                filteredData.forEach(champ => {
-                    const card = document.createElement('div');
-                    
-                    // Determinar clases CSS según el estado
-                    let statusClass = 'estado-pendiente bg-hextech-darkblue border-gray-700';
-                    let statusIcon = '';
-                    let badgeColor = 'bg-gray-700 text-gray-300';
+const STATES = { DONE:'Completado', WIP:'En progreso', TODO:'Pendiente' };
 
-                    if (champ.estado === 'Completado') {
-                        statusClass = 'estado-completado bg-hextech-panel cursor-pointer';
-                        badgeColor = 'bg-hextech-gold text-hextech-darkblue';
-                        if (champ.coach !== 'Ninguno') statusIcon = '<div class="absolute top-2 left-2 bg-hextech-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow" title="Coach"><i class="fa-solid fa-headset"></i></div>';
-                    } else if (champ.estado === 'En progreso') {
-                        statusClass = 'estado-progreso bg-hextech-panel border-hextech-blue border';
-                        badgeColor = 'bg-hextech-blue text-white';
-                    }
+const FALLBACK = [
+  { id:'Jax',    nombre:'Jax',     imagen_url:`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/Jax.png`,    estado:STATES.DONE, victorias:7, derrotas:3, coach:'ElOjoNinja',    fecha:'15 Oct 2023', video_url:'https://www.youtube.com/watch?v=dQw4w9WgXcQ', linea:'Top' },
+  { id:'Irelia', nombre:'Irelia',  imagen_url:`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/Irelia.png`, estado:STATES.DONE, victorias:4, derrotas:6, coach:'IreliaCarriesU', fecha:'22 Oct 2023', video_url:'https://www.youtube.com/watch?v=dQw4w9WgXcQ', linea:'Top' },
+  { id:'Gwen',   nombre:'Gwen',    imagen_url:`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/Gwen.png`,   estado:STATES.WIP,  victorias:2, derrotas:1, coach:'Ninguno', fecha:'', video_url:'' },
+  { id:'KSante', nombre:"K'Sante", imagen_url:`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/KSante.png`, estado:STATES.TODO, victorias:0, derrotas:0, coach:'Ninguno', fecha:'', video_url:'' },
+  { id:'Sett',   nombre:'Sett',    imagen_url:`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/Sett.png`,   estado:STATES.TODO, victorias:0, derrotas:0, coach:'Ninguno', fecha:'', video_url:'' }
+];
 
-                    // Crear Tarjeta
-                    card.className = `champion-card rounded-lg relative ${statusClass}`;
-                    card.innerHTML = `
-                        ${statusIcon}
-                        <div class="aspect-square overflow-hidden bg-[#000]">
-                            <img src="${champ.imagen_url}" alt="${champ.nombre}" class="w-full h-full object-cover object-top transition-all duration-500">
-                        </div>
-                        <div class="p-3 text-center border-t border-white/5">
-                            <h3 class="font-display font-bold text-lg tracking-wide ${champ.estado === 'Completado' ? 'text-hextech-gold' : 'text-gray-300'}">${champ.nombre}</h3>
-                            <span class="inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded ${badgeColor}">${champ.estado}</span>
-                        </div>
-                    `;
+/* Traducción de las tags de Data Dragon */
+const TAG_ES = {
+  Fighter:'Luchador', Mage:'Mago', Assassin:'Asesino',
+  Marksman:'Tirador', Tank:'Tanque', Support:'Soporte'
+};
 
-                    // Click para abrir Modal solo si está completado o en progreso
-                    if (champ.estado !== 'Pendiente') {
-                        card.addEventListener('click', () => openModal(champ));
-                    }
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const state = {
+  champions: [],
+  meta: {},                 // id -> { tags:[], title:'' }
+  filter: 'Todos',
+  role:   'Todos',
+  lane:   'Todos',
+  sort:   'alfabetico',
+  search: '',
+  view:   'grid',
+  visible: [],              // resultado del último filtrado, para navegar en el modal
+  modalIndex: -1
+};
 
-                    grid.appendChild(card);
-                });
-            }
-        }
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-        // 3. Actualizar Estadísticas Globales
-        function updateGlobalStats() {
-            const completados = championsData.filter(c => c.estado === 'Completado');
-            document.getElementById('stat-completados').innerText = completados.length;
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
 
-            let totalWins = 0;
-            let totalLosses = 0;
-            completados.forEach(c => {
-                totalWins += c.victorias;
-                totalLosses += c.derrotas;
-            });
+/** Quita acentos, apóstrofes y puntuación: K'Sante → ksante, Kai'Sa → kaisa */
+function normalize(str){
+  return String(str ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
 
-            const totalGames = totalWins + totalLosses;
-            const winrate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
-            document.getElementById('stat-winrate').innerText = `${winrate}%`;
-        }
+/** Acepta watch?v=, youtu.be/, /shorts/, /embed/, playlists y URLs de búsqueda */
+function parseYouTube(url){
+  if(!url) return { kind:'none' };
+  let u;
+  try { u = new URL(url); } catch { return { kind:'none' }; }
+  if(!/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(u.hostname)) return { kind:'link', url };
 
-        // 4. Modal de Detalles
-        const modal = document.getElementById('championModal');
-        const closeModalBtn = document.getElementById('closeModalBtn');
+  if(u.hostname.endsWith('youtu.be')){
+    const id = u.pathname.slice(1).split('/')[0];
+    return id ? { kind:'video', id, url } : { kind:'link', url };
+  }
+  if(u.pathname === '/results')  return { kind:'search',   url };
+  if(u.pathname === '/playlist') return { kind:'playlist', url };
 
-        function openModal(champ) {
-            document.getElementById('modalName').innerText = champ.nombre;
-            document.getElementById('modalAvatar').src = champ.imagen_url;
-            document.getElementById('modalBg').src = champ.imagen_url;
-            
-            // Colores del estado
-            const statusBadge = document.getElementById('modalStatus');
-            statusBadge.innerText = champ.estado;
-            if(champ.estado === 'Completado'){
-                statusBadge.className = 'inline-block px-2 py-1 rounded text-xs font-bold uppercase mt-1 bg-hextech-gold text-hextech-darkblue';
-            } else {
-                statusBadge.className = 'inline-block px-2 py-1 rounded text-xs font-bold uppercase mt-1 bg-hextech-blue text-white';
-            }
+  const v = u.searchParams.get('v');
+  if(v) return { kind:'video', id:v, url };
 
-            document.getElementById('modalWins').innerText = champ.victorias;
-            document.getElementById('modalLosses').innerText = champ.derrotas;
-            
-            const total = champ.victorias + champ.derrotas;
-            const wr = total > 0 ? Math.round((champ.victorias / total) * 100) : 0;
-            document.getElementById('modalWinrate').innerText = `${wr}%`;
-            
-            document.getElementById('modalCoach').innerText = champ.coach;
-            document.getElementById('modalDate').innerText = champ.fecha || 'Sin fecha';
+  const m = u.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/);
+  if(m) return { kind:'video', id:m[1], url };
 
-            const videoBtn = document.getElementById('modalVideoBtn');
-            if (champ.video_url) {
-                videoBtn.href = champ.video_url;
-                videoBtn.style.display = 'block';
-            } else {
-                videoBtn.style.display = 'none';
-            }
+  return { kind:'link', url };
+}
 
-            modal.showModal();
-        }
+function thumbFor(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
 
-        closeModalBtn.addEventListener('click', () => modal.close());
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.close(); // Cerrar al clickear fuera
-        });
+function winrate(c){
+  const total = (c.victorias || 0) + (c.derrotas || 0);
+  return total ? Math.round((c.victorias / total) * 100) : null;
+}
+function games(c){ return (c.victorias || 0) + (c.derrotas || 0); }
 
-        // 5. Filtros y Búsqueda
-        function setupEventListeners() {
-            // Botones de filtro
-            const filterBtns = document.querySelectorAll('.filter-btn');
-            filterBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    // Resetear estilos de botones
-                    filterBtns.forEach(b => {
-                        b.className = 'filter-btn px-4 py-2 rounded bg-hextech-darkblue border border-gray-600 text-gray-300 font-semibold text-sm uppercase transition hover:border-gray-400 hover:text-white';
-                    });
-                    
-                    // Aplicar estilo al activo
-                    const activeBtn = e.target;
-                    activeBtn.className = 'filter-btn active px-4 py-2 rounded bg-hextech-gold text-hextech-darkblue font-semibold text-sm uppercase transition hover:brightness-110 border-none';
-                    
-                    currentFilter = activeBtn.getAttribute('data-filter');
-                    renderGrid();
-                });
-            });
+/** Parser tolerante: "15 Oct 2023", "2023-10-15", "15/10/2023" */
+const MONTHS_ES = { ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,set:8,oct:9,nov:10,dic:11 };
+function parseDate(str){
+  if(!str) return null;
+  const s = String(str).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  m = s.match(/^(\d{1,2})\s+([a-zA-ZáéíóúÁÉÍÓÚ]+)\.?\s+(\d{4})$/);
+  if(m){
+    const key = normalize(m[2]).slice(0,3);
+    if(key in MONTHS_ES) return new Date(+m[3], MONTHS_ES[key], +m[1]);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
 
-            // Buscador
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', (e) => {
-                currentSearch = e.target.value;
-                renderGrid();
-            });
-        }
-    </script>
+/** Envuelve un cambio de DOM en una View Transition si el navegador la soporta */
+function transition(fn){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(document.startViewTransition && !reduce){
+    document.startViewTransition(fn);
+  } else {
+    fn();
+  }
+}
+
+function debounce(fn, ms){
+  let t;
+  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+/* ============================================================
+   CARGA DE DATOS
+   ============================================================ */
+async function loadChampions(){
+  showSkeletons();
+  try{
+    const res = await fetch('data.json', { cache:'no-cache' });
+    if(!res.ok) throw new Error(res.status);
+    const json = await res.json();
+    if(!Array.isArray(json)) throw new Error('data.json no es un array');
+    state.champions = json;
+  }catch(err){
+    console.warn('data.json no disponible, usando datos de ejemplo.', err);
+    state.champions = FALLBACK;
+  }
+  await loadMeta();
+  buildFilterOptions();
+  readStateFromURL();
+  updateGlobals();
+  renderHero();
+  render();
+}
+
+/** Trae tags (clases) desde Data Dragon; si falla, seguimos sin ellas */
+async function loadMeta(){
+  try{
+    const res = await fetch(DDRAGON_CHAMPS);
+    if(!res.ok) throw new Error(res.status);
+    const { data } = await res.json();
+    for(const key in data){
+      const c = data[key];
+      state.meta[key] = { tags:c.tags || [], title:c.title || '' };
+      state.meta[normalize(c.name)] = state.meta[key];
+    }
+  }catch(err){
+    console.warn('No se pudieron cargar las clases de Data Dragon.', err);
+  }
+}
+
+/** tags del JSON del usuario > tags de DDragon */
+function tagsOf(c){
+  if(Array.isArray(c.tags) && c.tags.length) return c.tags;
+  const meta = state.meta[c.id] || state.meta[normalize(c.nombre)];
+  return meta ? meta.tags : [];
+}
+function laneOf(c){ return c.linea || c.lane || c.rol || ''; }
+
+function showSkeletons(){
+  const grid = $('#championsGrid');
+  const frag = document.createDocumentFragment();
+  for(let i = 0; i < 24; i++){
+    const el = document.createElement('div');
+    el.className = 'skeleton';
+    frag.appendChild(el);
+  }
+  grid.replaceChildren(frag);
+}
+
+/* ============================================================
+   OPCIONES DE FILTRO DINÁMICAS
+   ============================================================ */
+function buildFilterOptions(){
+  const roles = new Set();
+  const lanes = new Set();
+  for(const c of state.champions){
+    tagsOf(c).forEach(t => roles.add(t));
+    const l = laneOf(c);
+    if(l) lanes.add(l);
+  }
+
+  const roleSel = $('#roleSelect');
+  [...roles].sort().forEach(t => {
+    const o = document.createElement('option');
+    o.value = t;
+    o.textContent = TAG_ES[t] || t;
+    roleSel.appendChild(o);
+  });
+
+  const laneSel = $('#laneSelect');
+  if(lanes.size === 0){
+    laneSel.closest('.group').querySelectorAll('.group__label').forEach(() => {});
+    laneSel.disabled = true;
+    laneSel.title = 'Añade "linea" a data.json para activar este filtro';
+  }
+  [...lanes].sort().forEach(l => {
+    const o = document.createElement('option');
+    o.value = l;
+    o.textContent = l;
+    laneSel.appendChild(o);
+  });
+}
+
+/* ============================================================
+   FILTRADO Y ORDENACIÓN
+   ============================================================ */
+function computeVisible(){
+  const q = normalize(state.search);
+
+  let list = state.champions.filter(c => {
+    if(state.filter !== 'Todos' && c.estado !== state.filter) return false;
+    if(state.role !== 'Todos' && !tagsOf(c).includes(state.role)) return false;
+    if(state.lane !== 'Todos' && laneOf(c) !== state.lane) return false;
+    if(q && !normalize(c.nombre).includes(q) && !normalize(c.id).includes(q)) return false;
+    return true;
+  });
+
+  const order = { [STATES.DONE]:0, [STATES.WIP]:1, [STATES.TODO]:2 };
+  const byName = (a,b) => a.nombre.localeCompare(b.nombre, 'es');
+
+  switch(state.sort){
+    case 'estado':
+      list.sort((a,b) => (order[a.estado] ?? 9) - (order[b.estado] ?? 9) || byName(a,b));
+      break;
+    case 'winrate':
+      list.sort((a,b) => (winrate(b) ?? -1) - (winrate(a) ?? -1) || byName(a,b));
+      break;
+    case 'partidas':
+      list.sort((a,b) => games(b) - games(a) || byName(a,b));
+      break;
+    case 'fecha':
+      list.sort((a,b) => {
+        const da = parseDate(a.fecha), db = parseDate(b.fecha);
+        if(da && db) return db - da;
+        if(da) return -1;
+        if(db) return 1;
+        return byName(a,b);
+      });
+      break;
+    default:
+      list.sort(byName);
+  }
+
+  state.visible = list;
+  return list;
+}
+
+/* ============================================================
+   RENDER · GRID
+   ============================================================ */
+function buildCard(c, index){
+  const wr    = winrate(c);
+  const total = games(c);
+  const tags  = tagsOf(c);
+  const lane  = laneOf(c);
+  const isTodo = c.estado === STATES.TODO;
+
+  const card = document.createElement(isTodo ? 'div' : 'button');
+  if(!isTodo) card.type = 'button';
+
+  const stateClass =
+    c.estado === STATES.DONE ? 'card--completado' :
+    c.estado === STATES.WIP  ? 'card--progreso'   : 'card--pendiente';
+
+  card.className = `card ${stateClass}${isTodo ? ' is-static' : ''}`;
+  card.style.setProperty('--d', `${Math.min(index, 24) * 26}ms`);
+  card.dataset.id = c.id;
+  if(!isTodo){
+    card.setAttribute('aria-label', `${c.nombre} · ${c.estado}${wr !== null ? ` · ${wr}% winrate` : ''}`);
+  }
+
+  // --- media ---
+  const media = document.createElement('div');
+  media.className = 'card__media';
+
+  const img = document.createElement('img');
+  img.className = 'card__img';
+  img.src = c.imagen_url;
+  img.alt = '';                       // decorativa: el nombre ya está en texto
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.width = 120; img.height = 120;
+  media.appendChild(img);
+
+  const scrim = document.createElement('div');
+  scrim.className = 'card__scrim';
+  media.appendChild(scrim);
+
+  const name = document.createElement('span');
+  name.className = 'card__name';
+  name.textContent = c.nombre;         // textContent → sin XSS
+  media.appendChild(name);
+
+  const sub = document.createElement('span');
+  sub.className = 'card__role';
+  sub.textContent = lane || tags.map(t => TAG_ES[t] || t).join(' · ') || c.estado;
+  media.appendChild(sub);
+
+  if(c.coach && c.coach !== 'Ninguno'){
+    const flag = document.createElement('span');
+    flag.className = 'card__flag';
+    flag.textContent = '★';
+    flag.title = `Coach: ${c.coach}`;
+    media.appendChild(flag);
+  }
+
+  if(wr !== null){
+    const badge = document.createElement('span');
+    badge.className = 'card__wr mono';
+    badge.textContent = `${wr}%`;
+    media.appendChild(badge);
+  }
+
+  if(total > 0){
+    const bar = document.createElement('span');
+    bar.className = 'card__wl';
+    const w = document.createElement('i');
+    w.className = 'w';
+    w.style.width = `${(c.victorias / total) * 100}%`;
+    const l = document.createElement('i');
+    l.className = 'l';
+    l.style.width = `${(c.derrotas / total) * 100}%`;
+    bar.append(w, l);
+    media.appendChild(bar);
+  }
+
+  card.appendChild(media);
+
+  if(!isTodo){
+    card.addEventListener('click', () => openModal(c.id));
+  }
+  return card;
+}
+
+function render(){
+  const grid  = $('#championsGrid');
+  const empty = $('#emptyState');
+  const list  = computeVisible();
+
+  transition(() => {
+    if(list.length === 0){
+      grid.replaceChildren();
+      empty.classList.add('is-shown');
+    }else{
+      empty.classList.remove('is-shown');
+      const frag = document.createDocumentFragment();
+      list.forEach((c, i) => frag.appendChild(buildCard(c, i)));
+      grid.replaceChildren(frag);
+      revealCards();
+    }
+  });
+
+  $('#resultsCount').innerHTML =
+    `Mostrando <b>${list.length}</b> de <b>${state.champions.length}</b>`;
+  syncURL();
+}
+
+/* Entrada escalonada solo de lo que entra en viewport */
+let cardObserver;
+function revealCards(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cards = $$('#championsGrid .card');
+
+  if(reduce || !('IntersectionObserver' in window)){
+    cards.forEach(c => c.classList.add('is-in'));
+    return;
+  }
+
+  cardObserver?.disconnect();
+  cardObserver = new IntersectionObserver((entries, obs) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        e.target.classList.add('is-in');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { rootMargin:'80px' });
+
+  cards.forEach(c => cardObserver.observe(c));
+}
+
+/* ============================================================
+   RENDER · CABECERA Y HERO
+   ============================================================ */
+function animateCount(el, to, suffix = ''){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ el.textContent = to + suffix; return; }
+
+  const from = Number(el.dataset.count) || 0;
+  const dur = 900;
+  const t0 = performance.now();
+
+  function step(now){
+    const p = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (to - from) * eased) + suffix;
+    if(p < 1) requestAnimationFrame(step);
+    else el.dataset.count = to;
+  }
+  requestAnimationFrame(step);
+}
+
+function updateGlobals(){
+  const done = state.champions.filter(c => c.estado === STATES.DONE);
+  const wins   = done.reduce((s,c) => s + (c.victorias || 0), 0);
+  const losses = done.reduce((s,c) => s + (c.derrotas  || 0), 0);
+  const total  = wins + losses;
+  const wr     = total ? Math.round((wins / total) * 100) : 0;
+
+  animateCount($('#statDone'), done.length);
+  animateCount($('#statWinrate'), wr, '%');
+  animateCount($('#statGames'), total);
+
+  const pct = state.champions.length
+    ? (done.length / state.champions.length) * 100 : 0;
+  $('#progressFill').style.width = `${pct}%`;
+  $('#progressBar').setAttribute('aria-valuenow', Math.round(pct));
+  $('#progressText').textContent = `${done.length} / ${state.champions.length}`;
+}
+
+function renderHero(){
+  const wip  = state.champions.find(c => c.estado === STATES.WIP);
+  const done = state.champions
+    .filter(c => c.estado === STATES.DONE && parseDate(c.fecha))
+    .sort((a,b) => parseDate(b.fecha) - parseDate(a.fecha));
+
+  const target = wip || done[0];
+  const section = $('#heroSection');
+  if(!target){ section.hidden = true; return; }
+
+  section.hidden = false;
+  $('#heroImg').src = target.imagen_url;
+  $('#heroImg').alt = '';
+  $('#heroName').textContent = target.nombre;
+
+  if(wip){
+    $('#heroEyebrow').textContent = 'Campeón en curso';
+    const g = games(target);
+    $('#heroNote').textContent = g
+      ? `${g} de 10 partidas jugadas · ${target.victorias}V ${target.derrotas}D`
+      : 'Aún sin partidas registradas';
+  }else{
+    $('#heroEyebrow').textContent = 'Último episodio';
+    $('#heroNote').textContent =
+      `${target.fecha} · ${target.victorias}V ${target.derrotas}D · ${winrate(target)}% winrate`;
+  }
+
+  $('#heroBtn').onclick = () => openModal(target.id);
+}
+
+/* ============================================================
+   RENDER · CRONOLOGÍA
+   ============================================================ */
+function renderTimeline(){
+  const list = $('#timelineList');
+  const empty = $('#timelineEmpty');
+
+  const items = state.champions
+    .filter(c => c.estado === STATES.DONE && parseDate(c.fecha))
+    .sort((a,b) => parseDate(b.fecha) - parseDate(a.fecha));
+
+  if(items.length === 0){
+    list.replaceChildren();
+    empty.classList.add('is-shown');
+    return;
+  }
+  empty.classList.remove('is-shown');
+
+  const frag = document.createDocumentFragment();
+  items.forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'tl-item';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tl-card';
+    btn.addEventListener('click', () => openModal(c.id));
+
+    const img = document.createElement('img');
+    img.src = c.imagen_url; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+
+    const box = document.createElement('div');
+    const nm = document.createElement('div');
+    nm.className = 'tl-card__name';
+    nm.textContent = c.nombre;
+    const meta = document.createElement('div');
+    meta.className = 'tl-card__meta';
+    meta.textContent = [c.fecha, c.coach && c.coach !== 'Ninguno' ? `Coach: ${c.coach}` : null]
+      .filter(Boolean).join(' · ');
+    box.append(nm, meta);
+
+    const wrBox = document.createElement('div');
+    wrBox.className = 'tl-card__wr';
+    const b = document.createElement('b');
+    b.textContent = `${winrate(c)}%`;
+    const small = document.createElement('div');
+    small.className = 'tl-card__meta';
+    small.textContent = `${c.victorias}V · ${c.derrotas}D`;
+    wrBox.append(b, small);
+
+    btn.append(img, box, wrBox);
+    li.appendChild(btn);
+    frag.appendChild(li);
+  });
+  list.replaceChildren(frag);
+}
+
+/* ============================================================
+   RENDER · COACHES
+   ============================================================ */
+function renderCoaches(){
+  const grid = $('#coachGrid');
+  const empty = $('#coachEmpty');
+
+  const map = new Map();
+  state.champions
+    .filter(c => c.estado === STATES.DONE && c.coach && c.coach !== 'Ninguno')
+    .forEach(c => {
+      if(!map.has(c.coach)) map.set(c.coach, []);
+      map.get(c.coach).push(c);
+    });
+
+  if(map.size === 0){
+    grid.replaceChildren();
+    empty.classList.add('is-shown');
+    return;
+  }
+  empty.classList.remove('is-shown');
+
+  const rows = [...map.entries()].map(([name, champs]) => {
+    const w = champs.reduce((s,c) => s + c.victorias, 0);
+    const l = champs.reduce((s,c) => s + c.derrotas, 0);
+    return { name, champs, w, l, wr: (w+l) ? Math.round(w/(w+l)*100) : 0 };
+  }).sort((a,b) => b.wr - a.wr || b.champs.length - a.champs.length);
+
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'coach';
+
+    const h = document.createElement('h3');
+    h.className = 'coach__name';
+    h.textContent = r.name;
+
+    const meta = document.createElement('p');
+    meta.className = 'coach__meta';
+    meta.textContent = `${r.champs.length} episodio${r.champs.length > 1 ? 's' : ''} · ${r.w}V ${r.l}D`;
+
+    const wr = document.createElement('div');
+    wr.className = 'coach__wr';
+    wr.textContent = `${r.wr}%`;
+
+    const champs = document.createElement('div');
+    champs.className = 'coach__champs';
+    r.champs.forEach(c => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = 'padding:0;border:0;background:none;cursor:pointer;line-height:0';
+      btn.setAttribute('aria-label', `Ver ${c.nombre}`);
+      btn.addEventListener('click', () => openModal(c.id));
+      const im = document.createElement('img');
+      im.src = c.imagen_url; im.alt = ''; im.title = c.nombre;
+      im.loading = 'lazy'; im.decoding = 'async';
+      btn.appendChild(im);
+      champs.appendChild(btn);
+    });
+
+    card.append(h, meta, wr, champs);
+    frag.appendChild(card);
+  });
+  grid.replaceChildren(frag);
+}
+
+/* ============================================================
+   RENDER · RÉCORDS Y GRÁFICO
+   ============================================================ */
+function renderStats(){
+  const done = state.champions
+    .filter(c => c.estado === STATES.DONE)
+    .sort((a,b) => {
+      const da = parseDate(a.fecha), db = parseDate(b.fecha);
+      if(da && db) return da - db;
+      return 0;
+    });
+
+  /* --- récords --- */
+  const grid = $('#recordsGrid');
+  const withWr = done.filter(c => winrate(c) !== null);
+  const best  = withWr.slice().sort((a,b) => winrate(b) - winrate(a))[0];
+  const worst = withWr.slice().sort((a,b) => winrate(a) - winrate(b))[0];
+  const totalGames  = done.reduce((s,c) => s + games(c), 0);
+  const perfect = done.filter(c => c.derrotas === 0 && c.victorias > 0).length;
+
+  const cards = [
+    { label:'Mejor campeón',  value: best  ? `${best.nombre} · ${winrate(best)}%`   : '—' },
+    { label:'Peor campeón',   value: worst ? `${worst.nombre} · ${winrate(worst)}%` : '—' },
+    { label:'Partidas totales', value: totalGames },
+    { label:'Sin derrotas',   value: perfect },
+    { label:'Racha actual',   value: currentStreak(done) }
+  ];
+
+  const frag = document.createDocumentFragment();
+  cards.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'record';
+    const l = document.createElement('div');
+    l.className = 'record__label';
+    l.textContent = c.label;
+    const v = document.createElement('div');
+    v.className = 'record__value';
+    v.textContent = c.value;
+    el.append(l, v);
+    frag.appendChild(el);
+  });
+  grid.replaceChildren(frag);
+
+  renderChart(done);
+}
+
+/** Racha de episodios consecutivos con winrate >= 50%, contando desde el final */
+function currentStreak(doneSorted){
+  let n = 0;
+  for(let i = doneSorted.length - 1; i >= 0; i--){
+    const wr = winrate(doneSorted[i]);
+    if(wr !== null && wr >= 50) n++;
+    else break;
+  }
+  return n ? `${n} episodio${n > 1 ? 's' : ''} ≥50%` : '—';
+}
+
+function renderChart(done){
+  const wrap = $('#chartWrap');
+  const pts = done.filter(c => winrate(c) !== null);
+
+  if(pts.length < 2){
+    wrap.textContent = 'Se necesitan al menos dos episodios completados para dibujar la evolución.';
+    wrap.style.color = 'var(--text-mute)';
+    wrap.style.fontSize = '14px';
+    return;
+  }
+  wrap.removeAttribute('style');
+
+  const W = 800, H = 300, P = 44;
+  const x = i => P + (i / (pts.length - 1)) * (W - P * 2);
+  const y = v => H - P - (v / 100) * (H - P * 2);
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Evolución del winrate por episodio');
+
+  // rejilla horizontal
+  [0, 25, 50, 75, 100].forEach(v => {
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', P); line.setAttribute('x2', W - P);
+    line.setAttribute('y1', y(v)); line.setAttribute('y2', y(v));
+    line.setAttribute('class', 'chart-grid');
+    if(v === 50) line.setAttribute('stroke-dasharray', '4 4');
+    svg.appendChild(line);
+
+    const lab = document.createElementNS(NS, 'text');
+    lab.setAttribute('x', P - 8); lab.setAttribute('y', y(v) + 3);
+    lab.setAttribute('text-anchor', 'end');
+    lab.setAttribute('class', 'chart-label');
+    lab.textContent = `${v}%`;
+    svg.appendChild(lab);
+  });
+
+  // línea
+  const d = pts.map((c, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(winrate(c)).toFixed(1)}`).join(' ');
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('class', 'chart-line');
+  svg.appendChild(path);
+  requestAnimationFrame(() => {
+    const len = path.getTotalLength();
+    path.style.setProperty('--len', len);
+  });
+
+  // puntos + etiquetas
+  pts.forEach((c, i) => {
+    const dot = document.createElementNS(NS, 'circle');
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(winrate(c)));
+    dot.setAttribute('r', 5);
+    dot.setAttribute('class', 'chart-dot');
+    const title = document.createElementNS(NS, 'title');
+    title.textContent = `${c.nombre}: ${winrate(c)}% (${c.victorias}V ${c.derrotas}D)`;
+    dot.appendChild(title);
+    svg.appendChild(dot);
+
+    if(pts.length <= 14 || i % Math.ceil(pts.length / 12) === 0){
+      const lab = document.createElementNS(NS, 'text');
+      lab.setAttribute('x', x(i)); lab.setAttribute('y', H - P + 18);
+      lab.setAttribute('text-anchor', 'middle');
+      lab.setAttribute('class', 'chart-label');
+      lab.textContent = c.nombre.slice(0, 8);
+      svg.appendChild(lab);
+    }
+  });
+
+  wrap.replaceChildren(svg);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+const modal = $('#championModal');
+
+function openModal(id){
+  const idx = state.visible.findIndex(c => c.id === id);
+  const champ = idx >= 0
+    ? state.visible[idx]
+    : state.champions.find(c => c.id === id);
+  if(!champ) return;
+
+  state.modalIndex = idx;
+  fillModal(champ);
+  if(!modal.open) modal.showModal();
+}
+
+function fillModal(c){
+  const wr = winrate(c);
+  const total = games(c);
+  const tags = tagsOf(c);
+  const lane = laneOf(c);
+
+  $('#modalName').textContent = c.nombre;
+  $('#modalAvatar').src = c.imagen_url;
+  $('#modalAvatar').alt = '';
+
+  // chips de estado + clases
+  const chips = $('#modalTags');
+  chips.replaceChildren();
+  const st = document.createElement('span');
+  st.className = 'chip ' + (c.estado === STATES.DONE ? 'chip--gold' : c.estado === STATES.WIP ? 'chip--teal' : '');
+  st.textContent = c.estado;
+  chips.appendChild(st);
+  tags.forEach(t => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = TAG_ES[t] || t;
+    chips.appendChild(chip);
+  });
+
+  $('#modalWins').textContent   = c.victorias || 0;
+  $('#modalLosses').textContent = c.derrotas  || 0;
+  $('#modalWinrate').textContent = wr === null ? '—' : `${wr}%`;
+
+  $('#modalBarW').style.width = total ? `${(c.victorias / total) * 100}%` : '0%';
+  $('#modalBarL').style.width = total ? `${(c.derrotas  / total) * 100}%` : '0%';
+
+  $('#modalCoach').textContent = (c.coach && c.coach !== 'Ninguno') ? c.coach : 'Sin coach';
+  $('#modalLane').textContent  = lane || 'Sin registrar';
+  $('#modalClass').textContent = tags.length ? tags.map(t => TAG_ES[t] || t).join(', ') : 'Sin datos';
+  $('#modalDate').textContent  = c.fecha || 'Sin fecha';
+
+  // vídeo + miniatura
+  const yt = parseYouTube(c.video_url);
+  const btn = $('#modalVideo');
+  const bg  = $('#modalBg');
+
+  if(yt.kind === 'video'){
+    btn.classList.remove('hidden');
+    btn.href = yt.url;
+    btn.textContent = '▶ Ver episodio en YouTube';
+    bg.src = thumbFor(yt.id);
+    bg.classList.add('modal__bg--yt');
+  }else if(yt.kind === 'search'){
+    btn.classList.remove('hidden');
+    btn.href = yt.url;
+    btn.textContent = '⌕ Buscar el episodio en YouTube';
+    bg.src = c.imagen_url;
+    bg.classList.remove('modal__bg--yt');
+  }else if(yt.kind === 'playlist' || yt.kind === 'link'){
+    btn.classList.remove('hidden');
+    btn.href = yt.url;
+    btn.textContent = '▶ Abrir enlace del episodio';
+    bg.src = c.imagen_url;
+    bg.classList.remove('modal__bg--yt');
+  }else{
+    btn.classList.add('hidden');
+    bg.src = c.imagen_url;
+    bg.classList.remove('modal__bg--yt');
+  }
+}
+
+/* Navegación entre campeones dentro del modal */
+function stepModal(dir){
+  if(state.modalIndex < 0 || state.visible.length === 0) return;
+  const openable = state.visible.filter(c => c.estado !== STATES.TODO);
+  if(openable.length === 0) return;
+
+  const current = state.visible[state.modalIndex];
+  let i = openable.findIndex(c => c.id === current.id);
+  if(i < 0) i = 0;
+  const next = openable[(i + dir + openable.length) % openable.length];
+  openModal(next.id);
+}
+
+/* Cierre animado */
+let closing = false;
+function closeModal(){
+  if(closing) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ modal.close(); return; }
+  closing = true;
+  modal.classList.add('is-closing');
+  modal.addEventListener('animationend', () => {
+    modal.classList.remove('is-closing');
+    closing = false;
+    modal.close();
+  }, { once:true });
+}
+
+$('#modalClose').addEventListener('click', closeModal);
+$('#modalPrev').addEventListener('click', () => stepModal(-1));
+$('#modalNext').addEventListener('click', () => stepModal(1));
+
+modal.addEventListener('click', e => {
+  if(e.target === modal) closeModal();       // clic en el backdrop
+});
+modal.addEventListener('cancel', e => {       // Esc: animamos nosotros
+  e.preventDefault();
+  closeModal();
+});
+modal.addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight'){ e.preventDefault(); stepModal(1); }
+  if(e.key === 'ArrowLeft'){  e.preventDefault(); stepModal(-1); }
+});
+
+/* ============================================================
+   URL COMO ESTADO
+   ============================================================ */
+function syncURL(){
+  const p = new URLSearchParams();
+  if(state.filter !== 'Todos')     p.set('estado', state.filter);
+  if(state.role   !== 'Todos')     p.set('clase',  state.role);
+  if(state.lane   !== 'Todos')     p.set('linea',  state.lane);
+  if(state.sort   !== 'alfabetico')p.set('orden',  state.sort);
+  if(state.search)                 p.set('q',      state.search);
+  if(state.view   !== 'grid')      p.set('vista',  state.view);
+
+  const qs = p.toString();
+  history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+}
+
+function readStateFromURL(){
+  const p = new URLSearchParams(location.search);
+  state.filter = p.get('estado') || 'Todos';
+  state.role   = p.get('clase')  || 'Todos';
+  state.lane   = p.get('linea')  || 'Todos';
+  state.sort   = p.get('orden')  || 'alfabetico';
+  state.search = p.get('q')      || '';
+  const v = p.get('vista');
+  if(v && ['grid','timeline','coaches','stats'].includes(v)) state.view = v;
+
+  $('#searchInput').value = state.search;
+  $('#searchClear').classList.toggle('hidden', !state.search);
+  $('#roleSelect').value = [...$('#roleSelect').options].some(o => o.value === state.role) ? state.role : 'Todos';
+  $('#laneSelect').value = [...$('#laneSelect').options].some(o => o.value === state.lane) ? state.lane : 'Todos';
+  $('#sortSelect').value = state.sort;
+
+  $$('#stateFilters .btn').forEach(b => {
+    const on = b.dataset.filter === state.filter;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+
+  if(state.view !== 'grid') switchView(state.view, false);
+}
+
+/* ============================================================
+   VISTAS
+   ============================================================ */
+function switchView(view, sync = true){
+  state.view = view;
+
+  $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === view)));
+  transition(() => {
+    $$('.view').forEach(v => v.classList.toggle('is-active', v.id === `view-${view}`));
+  });
+
+  $('#gridControls').classList.toggle('hidden',  view !== 'grid');
+  $('#gridControls2').classList.toggle('hidden', view !== 'grid');
+
+  if(view === 'timeline') renderTimeline();
+  if(view === 'coaches')  renderCoaches();
+  if(view === 'stats')    renderStats();
+
+  if(sync) syncURL();
+}
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+function bindEvents(){
+
+  // Tabs
+  $$('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchView(tab.dataset.view));
+  });
+
+  // Filtros de estado
+  $('#stateFilters').addEventListener('click', e => {
+    const btn = e.target.closest('.btn');
+    if(!btn) return;
+    $$('#stateFilters .btn').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    state.filter = btn.dataset.filter;
+    render();
+  });
+
+  // Selects
+  $('#roleSelect').addEventListener('change', e => { state.role = e.target.value; render(); });
+  $('#laneSelect').addEventListener('change', e => { state.lane = e.target.value; render(); });
+  $('#sortSelect').addEventListener('change', e => { state.sort = e.target.value; render(); });
+
+  // Buscador (con debounce)
+  const input = $('#searchInput');
+  const clear = $('#searchClear');
+  const kbd   = $('#searchKbd');
+
+  const runSearch = debounce(() => render(), 140);
+  input.addEventListener('input', e => {
+    state.search = e.target.value;
+    const has = state.search.length > 0;
+    clear.classList.toggle('hidden', !has);
+    kbd.classList.toggle('hidden', has);
+    runSearch();
+  });
+  clear.addEventListener('click', () => {
+    state.search = '';
+    input.value = '';
+    clear.classList.add('hidden');
+    kbd.classList.remove('hidden');
+    input.focus();
+    render();
+  });
+
+  // Reset desde el estado vacío
+  $('#resetFilters').addEventListener('click', () => {
+    state.filter = 'Todos'; state.role = 'Todos'; state.lane = 'Todos'; state.search = '';
+    input.value = '';
+    clear.classList.add('hidden');
+    kbd.classList.remove('hidden');
+    $('#roleSelect').value = 'Todos';
+    $('#laneSelect').value = 'Todos';
+    $$('#stateFilters .btn').forEach(b => {
+      const on = b.dataset.filter === 'Todos';
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    render();
+  });
+
+  // Atajos de teclado globales
+  document.addEventListener('keydown', e => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+    if(e.key === '/' && !typing && !modal.open){
+      e.preventDefault();
+      switchView('grid');
+      input.focus();
+      input.select();
+    }
+    if(e.key === 'Escape' && typing && e.target === input && input.value){
+      state.search = '';
+      input.value = '';
+      clear.classList.add('hidden');
+      kbd.classList.remove('hidden');
+      render();
+    }
+  });
+
+  // Header compacto al hacer scroll
+  const sentinel = document.createElement('div');
+  sentinel.style.cssText = 'position:absolute;top:0;height:1px;width:1px';
+  document.body.prepend(sentinel);
+  new IntersectionObserver(([e]) => {
+    document.body.classList.toggle('is-scrolled', !e.isIntersecting);
+  }, { threshold:0 }).observe(sentinel);
+}
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+bindEvents();
+loadChampions();
+</script>
 </body>
 </html>
